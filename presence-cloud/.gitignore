@@ -1,3 +1,6 @@
+node_modules/
+.env
+.env.*
 data/store.json
 worker/vendor/include/*
 worker/vendor/lib/*
