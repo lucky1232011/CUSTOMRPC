@@ -1,56 +1,66 @@
 # Presence Cloud
 
-A self-hostable, responsive activity profile dashboard. It provides persistent profile configuration, simulated previews, profile search/favourites/categories, rotation presets, schedule storage, a sleep timer preference, asset URL inventory, and operational logs.
+A phone-friendly Discord Rich Presence control panel backed by a long-running Linux process using Discord Social SDK. The browser is only the remote dashboard; the SDK worker stays running on the server after the phone browser closes.
 
-## Important capability boundary
+## What is implemented
 
-This build is a functional configuration dashboard. It **does not publish Rich Presence**, run a remote worker, connect Discord OAuth, or change account status. Selecting a profile only changes the saved dashboard selection. The UI and logs say so explicitly.
+- Discord OAuth2 login and a single-account lock after the first successful sign-in.
+- Encrypted-at-rest OAuth access and refresh tokens (AES-256-GCM), signed, secure session cookies, and same-origin checks for browser writes.
+- A persistent C++ worker process using the Linux x86_64 Social SDK. It connects with a bearer OAuth token, publishes the selected profile, reports SDK errors, refreshes its OAuth token and restarts after a worker crash.
+- Dashboard controls to start or stop the worker and select/update activity profiles. Stopping clears Rich Presence.
+- The rest of the profile, schedule and rotation editor from the original dashboard.
 
-Discord's official [Social SDK client reference](https://discord.com/developers/docs/slayer-sdk/classdiscordpp_1_1Client.html) documents both `UpdateRichPresence` and `SetOnlineStatus`. Those methods are part of a client SDK integration in an app, not a generic remote web API. The SDK must be integrated into a compatible native app and authorized; OAuth alone does not give this dashboard a way to publish a third-party game's activity or alter status. Discord's [Getting Started guide](https://discord.com/developers/docs/slayer-sdk/getting_started.html) describes SDK app setup and its main-loop callbacks. This implementation avoids self-bot techniques and personal account tokens.
+The worker is a normal always-running server process. It does not depend on Discord desktop, Chrome, or the phone staying open. The mobile app is the web dashboard; this does not install a native Android app.
 
-## Run locally
+## Discord application setup
 
-Requires Node.js 20 or later; no package install is needed.
+1. Use the application that has access to the downloaded Social SDK. Its ID is currently configured as `1569073956802134157` by default and can be overridden with `DISCORD_APPLICATION_ID`.
+2. In the Developer Portal, open **OAuth2** and create/use a client secret. Set the exact redirect URL to `https://YOUR-DOMAIN/auth/callback`.
+3. Make sure the app is permitted to request `sdk.social_layer_presence`. The dashboard requests `identify sdk.social_layer_presence`; Discord may reject the Social SDK scope if the application is not enabled for it.
+4. Do not send the client secret to chat or commit it. Add it as a deployment environment variable.
 
-```sh
-npm start
+## Private SDK files
+
+Discord's SDK archive is a deployment dependency and is excluded from source control. Copy these Linux x86_64 files from the archive into the local checkout before building:
+
+```text
+discord_social_sdk/include/discordpp.h       -> worker/vendor/include/discordpp.h
+discord_social_sdk/include/cdiscord.h         -> worker/vendor/include/cdiscord.h
+discord_social_sdk/lib/release/libdiscord_partner_sdk.so -> worker/vendor/lib/libdiscord_partner_sdk.so
 ```
 
-Open http://localhost:4173. Data persists in `data/store.json`. Back up this file before moving or replacing the app. The first run creates seeded example profiles.
+Keep `License-Notices.txt` alongside your private deployment files and comply with Discord's SDK terms. The provided archive is already present in the Codex workspace's local ignored `worker/vendor` folder; it is not uploaded to GitHub.
 
-## Features
+## Build and run with Docker
 
-- Create, edit, delete, duplicate, search, select, and categorize profiles; favourite state is retained.
-- Configure activity type, text, image URLs, button URLs, party fields and a simulated preview.
-- Save sequential/random rotation presets and recurring weekday schedules with time zones.
-- Save a smart sleep timer preference.
-- Inspect asset references, health states, and timestamped events.
-- Responsive layout for phone, tablet and desktop.
-- JSON-file persistence through a small Node HTTP server.
+Requires Docker and an x86_64 Linux host. The host must support a persistent container and durable storage. Do not use a serverless or sleeping web host for the worker.
 
-## Security and deployment status
+```sh
+docker build -f worker/Dockerfile -t presence-cloud .
+```
 
-This is single-user local software, with no authentication, CSRF controls, rate limiting, managed database, OAuth, TLS termination, or multi-user authorization. **Do not expose it to the public internet.** The JSON API is unauthenticated and suitable only for a trusted local machine. Before public deployment, implement those controls, move to a database, validate deployments behind HTTPS, and add backups and secret management.
+Generate secrets with a secure random generator. `TOKEN_ENCRYPTION_KEY` must be 32 random bytes encoded as 64 hexadecimal characters. Set:
 
-No cloud account, repository, domain, or deployment credentials were provided, so this artifact has not been deployed. Free hosts frequently sleep or restrict continuous processes; the app has no worker process and therefore schedules/rotations are stored, not executed. A genuinely always-on worker may need paid infrastructure. No subscription has been initiated.
+```text
+NODE_ENV=production
+PORT=4173
+PUBLIC_URL=https://YOUR-DOMAIN
+DISCORD_APPLICATION_ID=1569073956802134157
+DISCORD_CLIENT_ID=1569073956802134157
+DISCORD_CLIENT_SECRET=<Discord OAuth client secret>
+SESSION_SECRET=<at least 32 random bytes, hex or base64>
+TOKEN_ENCRYPTION_KEY=<32 random bytes, 64 hex characters>
+```
 
-## Discord limitations
+Run the container with a persistent volume mounted at `/app/data`, expose port 4173 behind HTTPS, and configure the OAuth callback above. The first Discord account to complete sign-in becomes the owner; keep the endpoint private until that initial sign-in is complete. Later sign-ins from a different Discord user are rejected. Back up `/app/data/store.json` securely; it contains encrypted OAuth credentials and private profile data.
 
-- Rich Presence requires a supported Discord client/SDK integration. Discord's desktop RPC IPC is local to the host and cannot be reached by a browser on a remote server.
-- The official Social SDK is designed for a game or app integration and SDK authentication; it is not a generic personal RPC host for this dashboard.
-- Discord Social SDK includes account online-status support in the SDK API, but it must be called by an integrated authorized client. This app does not have one. Custom status text/emoji are not implemented.
-- Discord app image keys should be uploaded in the Developer Portal. Arbitrary external image URLs in saved profiles are only preview references and may not render in Discord.
-- No join/spectate transport integration is implemented.
-- No authentication means there is no safe multi-user deployment path yet.
+For local development, `npm start` serves the dashboard. OAuth requires the Discord variables above, `PUBLIC_URL=http://localhost:4173`, and a matching local callback URL in the Developer Portal. Set `COOKIE_SECURE=false` for local HTTP only.
 
-## API routes
+## Worker protocol and limitations
 
-- `GET /api/state`, `GET /api/health`
-- `POST /api/profiles`, `PUT/DELETE /api/profiles/:id`
-- `POST /api/activate` (dashboard selection only; response has `published:false`)
-- `POST /api/rotations`, `DELETE /api/rotations/:id`
-- `POST /api/schedules`, `DELETE /api/schedules/:id`
-- `POST /api/settings`, `POST /api/logs`
+The worker executable is `worker/build/presence-worker` by default; override with `PRESENCE_WORKER`. Discord OAuth tokens are personal credentials and are encrypted in the application data file. The Social SDK scope must be granted by Discord for the app. Image values should be Discord application asset keys or valid SDK-supported image references; URLs may not render as expected. The Social SDK currently expects activity type `Playing`; other editor types are mapped to that supported worker activity type.
 
-`npm run check` validates server JavaScript syntax. Manual API smoke-test results are recorded in `TEST-RESULTS.md`.
+Rotations and schedules are still stored by the original dashboard but their background execution controls are not yet wired to the persistent worker. The current server provides start/stop, profile selection/update, and account status setting. An OAuth login success alone is not treated as an activity publishing success; the worker reports SDK callback results.
+
+This repository contains the source, not a hosted website. A live link requires a persistent x86_64 host, HTTPS domain, OAuth client secret and encryption secrets. No hosting service or paid plan has been selected or configured here.
 
