@@ -77,7 +77,7 @@ const server=http.createServer(async(req,res)=>{
     if(!CLIENT_SECRET)return send(res,503,{error:'Set DISCORD_CLIENT_SECRET on the server first.'});
     const state=crypto.randomBytes(24).toString('base64url');oauthStates.set(state,Date.now()+10*60_000);cookie(res,'pc_oauth',state,600);
     const redirectUri=`${PUBLIC_URL||`${req.headers['x-forwarded-proto']||'http'}://${req.headers.host}`}/auth/callback`;
-    const q=new URLSearchParams({client_id:CLIENT_ID,response_type:'code',redirect_uri:redirectUri,scope:'identify sdk.social_layer_presence',state,prompt:'consent'});
+    const q=new URLSearchParams({client_id:CLIENT_ID,response_type:'code',redirect_uri:redirectUri,scope:'identify openid sdk.social_layer_presence',state,prompt:'consent'});
     return res.writeHead(302,{Location:`https://discord.com/oauth2/authorize?${q}`,'Cache-Control':'no-store'}).end();
   }
   if(req.method==='GET'&&u.pathname==='/auth/callback'){
