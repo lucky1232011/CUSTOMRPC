@@ -1,6 +1,6 @@
 # Presence Cloud
 
-A phone-friendly Discord Rich Presence control panel backed by a long-running Linux process using Discord Social SDK. The browser is only the remote dashboard; the SDK worker stays running on the server after the phone browser closes.
+A phone-friendly Discord Rich Presence control panel backed by a long-running Linux process using Discord Social SDK. Vercel can host the static dashboard and proxy sign-in/API requests; the SDK worker stays on a separate always-on server after the phone browser closes.
 
 ## What is implemented
 
@@ -53,6 +53,20 @@ TOKEN_ENCRYPTION_KEY=<32 random bytes, 64 hex characters>
 ```
 
 Run the container with a persistent volume mounted at `/app/data`, expose port 4173 behind HTTPS, and configure the OAuth callback above. The first Discord account to complete sign-in becomes the owner; keep the endpoint private until that initial sign-in is complete. Later sign-ins from a different Discord user are rejected. Back up `/app/data/store.json` securely; it contains encrypted OAuth credentials and private profile data.
+
+## Use Vercel for the website
+
+The repo includes a Vercel static dashboard deployment and same-origin proxy functions for `/api/*` and `/auth/*`. In Vercel, import `lucky1232011/CUSTOMRPC` and set the project root directory to `presence-cloud`. Deploy once to get the project URL. Add the Vercel project URL plus `/auth/callback` to the Discord OAuth redirect list.
+
+Vercel project environment variable:
+
+```text
+PRESENCE_BACKEND_URL=https://YOUR-PERSISTENT-BACKEND-HOST
+```
+
+Set `PUBLIC_URL=https://YOUR-PROJECT.vercel.app` on the Docker backend, and register that exact URL plus `/auth/callback` in Discord. The backend must have HTTPS and persistent disk for `/app/data`. The Vercel proxy keeps the phone dashboard and OAuth callback on one origin; it does not run the C++ worker.
+
+Vercel Functions are request-scoped and terminate at their maximum duration; they are not the place for a process that must stay connected all day. Current Vercel docs list bounded function durations and note that instances scale down when requests stop. Use Vercel for the UI/proxy and the Docker backend for the long-running Social SDK process.
 
 For local development, `npm start` serves the dashboard. OAuth requires the Discord variables above, `PUBLIC_URL=http://localhost:4173`, and a matching local callback URL in the Developer Portal. Set `COOKIE_SECURE=false` for local HTTP only.
 
