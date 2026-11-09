@@ -1,13 +1,8 @@
-# Verification results
+# Build status
 
-Verified locally on 2026-11-09.
+The Social SDK C++ worker source, OAuth flow and Docker build path were added. No compile, test suite or live Discord login was run in this environment.
 
-- `node --check server.js`: passed.
-- HTTP API smoke test: blocked. The server started, but the execution sandbox denied a localhost socket connection (`An attempt was made to access a socket in a way forbidden by its access permissions.`). Route behaviour is therefore not claimed as tested.
-- Settings persistence across server restart: not exercised.
-- Browser/mobile visual QA: not exercised in a real device/browser session.
-- Discord publishing / account status: not testable; no Discord SDK native client, app credentials, OAuth setup, or compatible Discord application was provided. These features are not implemented.
-- Cloud worker restart, browser closure independence, production authentication/authorization, rate limiting and deployment: not available in this local-only build.
+The local environment does not include a C++ compiler, CMake, Docker, Android SDK or an installed Linux environment. The downloaded Discord SDK archive provides the Linux x86_64 library and is available in the ignored local `worker/vendor/` folder. The source is ready for a Linux/Docker build after configuring OAuth secrets and an enabled persistent host.
 
-These results do not imply production readiness or Discord connectivity. No feature is claimed as working beyond syntax validation and static implementation review.
+Live OAuth and Rich Presence still require the Developer Portal client secret, approval for the requested `sdk.social_layer_presence` scope, and a deployed HTTPS origin with the exact `/auth/callback` redirect registered. No website has been deployed.
 
