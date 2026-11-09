@@ -1,0 +1,12 @@
+cmake_minimum_required(VERSION 3.20)
+project(presence_worker LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(nlohmann_json 3.10 REQUIRED)
+find_package(Threads REQUIRED)
+add_executable(presence-worker main.cpp)
+target_include_directories(presence-worker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/include)
+target_link_directories(presence-worker PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/lib)
+target_link_libraries(presence-worker PRIVATE discord_partner_sdk nlohmann_json::nlohmann_json Threads::Threads)
+set_target_properties(presence-worker PROPERTIES BUILD_RPATH "$ORIGIN/../lib")
+
