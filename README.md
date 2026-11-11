@@ -2,13 +2,11 @@
 
 ## Android app
 
-**[Android install and download guide](ANDROID_INSTALL.md)**
+**[⬇ Download the Android APK](android/app-debug.apk)**
 
-The guide covers installing and running the Android Rich Presence app. The APK is expected at [android/app-debug.apk](android/app-debug.apk).
+[Install and setup instructions](ANDROID_INSTALL.md)
 
-> If the APK link does not open, upload and commit `app-debug.apk` to the repository's `android/` folder first.
-
-The Android app can publish Rich Presence while its foreground service runs on your phone. The phone must stay on, and Discord must be installed and signed in. Android app/media detection is local and video titles are best-effort.
+Custom RPC publishes a Rich Presence while its foreground service runs on your Android phone. Keep the phone powered and Discord installed and signed in. App/media detection runs locally; video titles are best-effort.
 
 ## Web dashboard
 
