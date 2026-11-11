@@ -1,5 +1,17 @@
 # CUSTOMRPC
 
-Personal custom RPC for Discord. The current web dashboard source and setup guide are in [`presence-cloud/`](presence-cloud/README.md).
+## Android app
 
-Run locally with Node.js 20+: `cd presence-cloud` then `npm start`. Read its README for capabilities and Discord integration limitations.
+**[Android install and download guide](ANDROID_INSTALL.md)**
+
+The guide covers installing and running the Android Rich Presence app. The APK is expected at [android/app-debug.apk](android/app-debug.apk).
+
+> If the APK link does not open, upload and commit `app-debug.apk` to the repository's `android/` folder first.
+
+The Android app can publish Rich Presence while its foreground service runs on your phone. The phone must stay on, and Discord must be installed and signed in. Android app/media detection is local and video titles are best-effort.
+
+## Web dashboard
+
+The previous web dashboard source is in [presence-cloud/](presence-cloud/README.md). It does not run the Android Rich Presence worker.
+
+For the Android build requirements, SDK dependency setup, and Android Studio steps, see [android/README.md](presence-cloud/README.md).
