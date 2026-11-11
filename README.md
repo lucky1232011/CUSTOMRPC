@@ -14,4 +14,4 @@ The Android app can publish Rich Presence while its foreground service runs on y
 
 The previous web dashboard source is in [presence-cloud/](presence-cloud/README.md). It does not run the Android Rich Presence worker.
 
-For the Android build requirements, SDK dependency setup, and Android Studio steps, see [android/README.md](presence-cloud/README.md).
+For Android SDK dependency setup and Android Studio build steps, see [ANDROID_INSTALL.md](ANDROID_INSTALL.md).
